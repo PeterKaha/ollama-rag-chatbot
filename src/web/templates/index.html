@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollama RAG Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div>
+        <p class="eyebrow">Local RAG Workspace</p>
+        <h1>Ollama RAG Chatbot</h1>
+        <p class="intro">
+          Lokale Dokumentensuche mit Chroma, Ollama-LLM und direktem Quellenbezug.
+        </p>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <span>Status</span>
+          <strong id="health-label">Pruefe...</strong>
+        </div>
+        <div class="status-meta" id="health-meta"></div>
+        <button id="reindex-button" class="secondary-button" type="button">Dokumente neu indexieren</button>
+      </div>
+
+      <div class="tips-card">
+        <h2>Hinweise</h2>
+        <ul>
+          <li>Lege .txt, .md oder .pdf Dateien in ./data ab.</li>
+          <li>Beim Serverstart wird automatisch indexiert.</li>
+          <li>Unter jeder Antwort siehst du die verwendeten Quellen.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="chat-panel">
+      <section class="hero-card">
+        <p class="eyebrow">Browser Interface</p>
+        <h2>Fragen stellen, Kontext sehen, lokal bleiben.</h2>
+        <p>
+          Die Anwendung nutzt dein lokales Ollama-Setup. Antworten werden aus den relevantesten Dokument-Chunks aufgebaut.
+        </p>
+      </section>
+
+      <section id="messages" class="messages" aria-live="polite">
+        <article class="message assistant-message">
+          <div class="message-label">Assistent</div>
+          <p>Stelle eine Frage zu deinen Dokumenten. Das System verwendet die relevantesten Treffer aus Chroma als Kontext.</p>
+        </article>
+      </section>
+
+      <form id="chat-form" class="composer">
+        <label class="composer-label" for="question-input">Frage</label>
+        <textarea id="question-input" name="question" rows="4" placeholder="Zum Beispiel: Welche Fristen muss ich zwei Monate vor einem Umzug beachten?" required></textarea>
+        <div class="composer-actions">
+          <span class="hint">Enter sendet. Shift+Enter macht einen Zeilenumbruch.</span>
+          <button class="primary-button" type="submit">Antwort abrufen</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <template id="message-template">
+    <article class="message">
+      <div class="message-label"></div>
+      <div class="message-body"></div>
+      <div class="sources"></div>
+    </article>
+  </template>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
