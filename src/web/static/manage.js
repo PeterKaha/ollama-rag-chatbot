@@ -128,11 +128,9 @@ async function cleanupStale() {
     if (data.removed_sources === 0) {
       errEl.style.color = "var(--muted)";
       errEl.textContent = "Keine veralteten Einträge gefunden.";
-      errEl.style.color = "";
     } else {
       errEl.style.color = "var(--primary)";
       errEl.textContent = `${data.removed_sources} Quelle(n) bereinigt · ${data.chunks_deleted} Chunks entfernt.`;
-      errEl.style.color = "";
     }
     await Promise.all([refreshSources(), fetchHealth()]);
   } catch (err) {
@@ -157,7 +155,6 @@ async function reindex() {
     if (!res.ok) throw new Error(data.detail || res.statusText);
     errEl.style.color = "var(--primary)";
     errEl.textContent = `Indexiert: ${data.documents_loaded} Dok. · ${data.chunks_added} neue Chunks · ${data.chunks_total} gesamt.`;
-    errEl.style.color = "";
     await Promise.all([refreshSources(), fetchHealth()]);
   } catch (err) {
     errEl.textContent = `Fehler: ${err.message}`;
@@ -222,14 +219,12 @@ function initUpload() {
       if (!res.ok) throw new Error(data.detail || res.statusText);
       resultEl.style.color = "var(--primary)";
       resultEl.textContent = `"${data.uploaded}" hochgeladen · ${data.chunks_added} neue Chunks · ${data.chunks_total} gesamt.`;
-      resultEl.style.color = "";
       fileInput.value = "";
       nameDisplay.textContent = "";
       await Promise.all([refreshSources(), fetchHealth()]);
     } catch (err) {
       resultEl.style.color = "var(--error)";
       resultEl.textContent = `Fehler: ${err.message}`;
-      resultEl.style.color = "";
     } finally {
       uploadBtn.disabled = true;
       uploadBtn.classList.remove("loading");
