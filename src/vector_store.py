@@ -12,6 +12,7 @@ class VectorStore:
     COLLECTION_NAME = "rag_documents"
     CHUNK_SIZE = 1000
     CHUNK_OVERLAP = 200
+    ADD_BATCH_SIZE_FALLBACK = 1000
     STOPWORDS = {
         "aber",
         "alle",
@@ -148,6 +149,10 @@ class VectorStore:
 
         total_all = len(new_chunks)
         total_done = 0
+        try:
+            max_add_batch = max(1, int(self.client.get_max_batch_size()))
+        except Exception:
+            max_add_batch = self.ADD_BATCH_SIZE_FALLBACK
 
         for source, chunks in chunks_by_source.items():
             filename = chunks[0].metadata.get("filename") or source.split("/")[-1]
@@ -164,12 +169,15 @@ class VectorStore:
             print(f"Erstelle Embeddings für {n} Chunks ({filename})...")
             embeddings = self.embeddings.embed_many([c.content for c in chunks], on_chunk=chunk_cb)
 
-            self.collection.add(
-                ids=[str(uuid.uuid4()) for _ in chunks],
-                embeddings=embeddings,
-                documents=[c.content for c in chunks],
-                metadatas=[c.metadata for c in chunks],
-            )
+            for i in range(0, n, max_add_batch):
+                batch_chunks = chunks[i : i + max_add_batch]
+                batch_embeddings = embeddings[i : i + max_add_batch]
+                self.collection.add(
+                    ids=[str(uuid.uuid4()) for _ in batch_chunks],
+                    embeddings=batch_embeddings,
+                    documents=[c.content for c in batch_chunks],
+                    metadatas=[c.metadata for c in batch_chunks],
+                )
             total_done += n
 
         return total_done
