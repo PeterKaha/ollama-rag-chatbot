@@ -23,6 +23,16 @@ Antwort:"""
 
 
 class RAGPipeline:
+    STOPWORDS = {
+        "aber", "alle", "als", "auch", "auf", "aus", "bei", "bin", "bis", "bist", "da", "dann", "das",
+        "dass", "dein", "deine", "dem", "den", "der", "des", "die", "dies", "diese", "du", "ein", "eine",
+        "einem", "einen", "einer", "er", "es", "euch", "euer", "fuer", "hat", "hier", "ich", "ihr", "ihre",
+        "im", "in", "ist", "ja", "kann", "man", "mein", "mit", "muss", "nach", "nicht", "noch", "nun",
+        "oder", "seid", "sein", "seine", "sich", "sie", "sind", "soll", "sonst", "ueber", "um", "und", "uns",
+        "unter", "von", "vor", "wann", "warum", "was", "weil", "welche", "wenn", "wer", "werden", "wie",
+        "wir", "wird", "wo", "zu", "zum", "zur", "kurz",
+    }
+
     def __init__(
         self,
         vector_store: VectorStore,
@@ -41,6 +51,17 @@ class RAGPipeline:
             yield (
                 "Keine Dokumente im Vector Store gefunden. "
                 "Bitte füge Dateien in das ./data Verzeichnis ein und starte neu."
+            )
+            return
+
+        if self._is_coverage_question(question):
+            yield self._answer_coverage_question(relevant_docs)
+            return
+
+        if self._is_context_too_weak(question, relevant_docs):
+            yield (
+                "Dazu finde ich in den aktuell indexierten Quellen keine verlässliche Information. "
+                "Bitte stelle eine Frage, die sich direkt auf die vorhandenen Dokumente bezieht."
             )
             return
 
@@ -169,3 +190,53 @@ class RAGPipeline:
     def _tokenize(self, text: str) -> List[str]:
         normalized = re.sub(r"[^a-zA-Z0-9äöüÄÖÜß]+", " ", text.casefold())
         return [token for token in normalized.split() if len(token) > 2]
+
+    def _is_coverage_question(self, question: str) -> bool:
+        normalized = question.casefold()
+        patterns = (
+            "mit den aktuellen quellen",
+            "in den quellen",
+            "nicht beantwortet",
+            "beantwortbar",
+            "quellenlage",
+            "welche quellen",
+            "welche dokumente",
+            "welche themen",
+            "was kann ich",
+            "worueber kann ich",
+        )
+        return any(pattern in normalized for pattern in patterns)
+
+    def _answer_coverage_question(self, documents: List[Dict[str, Any]]) -> str:
+        filenames = []
+        for doc in documents:
+            name = doc.get("metadata", {}).get("filename")
+            if name and name not in filenames:
+                filenames.append(name)
+
+        if not filenames:
+            return "Ich sehe aktuell keine verfügbaren Quellen im Index."
+
+        listed = ", ".join(filenames)
+        return (
+            "Aktuell kann ich nur Fragen beantworten, die in diesen Quellen vorkommen: "
+            f"{listed}. "
+            "Fragen außerhalb dieser Themen kann ich nicht zuverlässig beantworten."
+        )
+
+    def _is_context_too_weak(self, question: str, documents: List[Dict[str, Any]]) -> bool:
+        question_tokens = {token for token in self._tokenize(question) if token not in self.STOPWORDS}
+        if not question_tokens:
+            return False
+
+        best_overlap = 0.0
+        for doc in documents[:3]:
+            content = self._clean_ocr(doc.get("content", ""))
+            doc_tokens = {token for token in self._tokenize(content) if token not in self.STOPWORDS}
+            if not doc_tokens:
+                continue
+            overlap = len(question_tokens & doc_tokens) / len(question_tokens)
+            best_overlap = max(best_overlap, overlap)
+
+        best_relevance = max((1.0 - float(doc.get("distance", 1.0)) for doc in documents), default=0.0)
+        return best_overlap < 0.18 and best_relevance < 0.45
