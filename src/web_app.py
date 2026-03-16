@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -29,7 +30,8 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         rag_app.validate_dependencies()
-        rag_app.index_documents()
+        if os.getenv("AUTO_REINDEX_ON_STARTUP", "0") == "1":
+            rag_app.index_documents()
         yield
 
     app = FastAPI(

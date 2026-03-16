@@ -95,7 +95,9 @@ python main.py web
 
 Danach ist das Frontend standardmaessig unter `http://127.0.0.1:8000` erreichbar.
 
-Beim ersten Start werden alle Dokumente automatisch indexiert (Embeddings berechnet und in Chroma gespeichert). Folgestarts sind deutlich schneller, da bereits indexierte Quellen übersprungen werden.
+Standardmaessig startet das Webfrontend sofort ohne automatische Reindexierung.
+Wenn du beim Web-Start automatisch neu indexieren willst, setze in `.env` `AUTO_REINDEX_ON_STARTUP=1`.
+Unabhaengig davon kannst du jederzeit `POST /api/reindex` ausloesen.
 
 ## Verwendung
 
@@ -128,6 +130,7 @@ Im Webfrontend stellst du dieselben Fragen im Browser, siehst die Antwort direkt
 | `TOP_K_RESULTS`       | `5`                       | Anzahl relevanter Chunks als Kontext      |
 | `WEB_HOST`            | `127.0.0.1`               | Host fuer das Webfrontend                 |
 | `WEB_PORT`            | `8000`                    | Port fuer das Webfrontend                 |
+| `AUTO_REINDEX_ON_STARTUP` | `0`                   | `1` = beim Webstart automatisch reindexieren |
 
 ## Projektstruktur
 
