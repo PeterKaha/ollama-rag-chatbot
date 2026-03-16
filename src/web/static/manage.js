@@ -143,24 +143,80 @@ async function cleanupStale() {
 
 // ── Reindex ───────────────────────────────────────────────────────────────────
 
+function showProgress(text, pct) {
+  const box = document.getElementById("index-progress");
+  const bar = document.getElementById("index-progress-bar");
+  const label = document.getElementById("index-progress-text");
+  box.hidden = false;
+  bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+  label.textContent = text;
+}
+
+function hideProgress() {
+  const box = document.getElementById("index-progress");
+  if (box) {
+    box.hidden = true;
+  }
+}
+
+function streamReindex() {
+  return new Promise((resolve) => {
+    const errEl = document.getElementById("sources-error");
+    const es = new EventSource("/api/reindex-stream");
+
+    es.onmessage = (e) => {
+      const event = JSON.parse(e.data);
+      if (event.type === "start") {
+        showProgress(`Indexiere ${event.documents} Dokument(e)...`, 0);
+      } else if (event.type === "progress") {
+        const pct = event.total_all > 0
+          ? Math.round((event.total_done / event.total_all) * 100)
+          : 0;
+        showProgress(
+          `${event.filename}: ${event.chunk_done}/${event.chunk_total} Chunks (${event.total_done}/${event.total_all} gesamt)`,
+          pct,
+        );
+      } else if (event.type === "done") {
+        showProgress("Fertig.", 100);
+        errEl.style.color = "var(--primary)";
+        errEl.textContent = `Fertig · ${event.chunks_added} neue Chunks · ${event.chunks_total} gesamt.`;
+        setTimeout(hideProgress, 2500);
+        es.close();
+        Promise.all([refreshSources(), fetchHealth()]).then(resolve);
+      } else if (event.type === "error") {
+        errEl.style.color = "var(--error)";
+        errEl.textContent = `Fehler: ${event.message}`;
+        hideProgress();
+        es.close();
+        resolve();
+      }
+    };
+
+    es.onerror = () => {
+      errEl.style.color = "var(--error)";
+      errEl.textContent = "Verbindung zum Fortschritts-Stream unterbrochen.";
+      hideProgress();
+      es.close();
+      resolve();
+    };
+  });
+}
+
 async function reindex() {
   const btn   = document.getElementById("reindex-button");
   const errEl = document.getElementById("sources-error");
   errEl.textContent = "";
+  errEl.style.color = "";
   btn.disabled = true;
-  btn.classList.add("loading");
+  showProgress("Starte Indexierung...", 0);
   try {
-    const res  = await fetch("/api/reindex", { method: "POST" });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || res.statusText);
-    errEl.style.color = "var(--primary)";
-    errEl.textContent = `Indexiert: ${data.documents_loaded} Dok. · ${data.chunks_added} neue Chunks · ${data.chunks_total} gesamt.`;
-    await Promise.all([refreshSources(), fetchHealth()]);
+    await streamReindex();
   } catch (err) {
+    errEl.style.color = "var(--error)";
     errEl.textContent = `Fehler: ${err.message}`;
+    hideProgress();
   } finally {
     btn.disabled = false;
-    btn.classList.remove("loading");
   }
 }
 
