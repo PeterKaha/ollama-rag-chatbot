@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokumente – Ollama RAG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-shell page-shell-manage">
+    <aside class="sidebar">
+      <div>
+        <p class="eyebrow">Local RAG Workspace</p>
+        <nav class="top-nav">
+          <a href="/" class="top-nav-link">Chat</a>
+          <a href="/manage" class="top-nav-link active">Dokumente</a>
+        </nav>
+        <h1>Ollama RAG Chatbot</h1>
+        <p class="intro">
+          Dokumente hochladen, indexierte Quellen verwalten und veraltete Einträge bereinigen.
+        </p>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <span>Status</span>
+          <strong id="health-label">Prüfe...</strong>
+        </div>
+        <div class="status-meta" id="health-meta"></div>
+      </div>
+
+      <div class="tips-card">
+        <h2>Hinweise</h2>
+        <ul>
+          <li>Unterstützte Formate: .pdf, .txt, .md</li>
+          <li>Nach dem Hochladen wird automatisch neu indexiert.</li>
+          <li>Veraltete Einträge entstehen, wenn Dateien direkt aus ./data gelöscht werden.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="manage-panel">
+
+      <!-- Upload -->
+      <section class="manage-card">
+        <div class="manage-card-header">
+          <h2>Dokument hochladen</h2>
+        </div>
+        <form id="upload-form" class="upload-form" enctype="multipart/form-data">
+          <div class="upload-drop" id="upload-drop">
+            <label class="upload-drop-label" for="file-input">
+              <strong>Datei auswählen</strong> oder hierher ziehen
+              <input type="file" id="file-input" name="file" accept=".pdf,.txt,.md">
+            </label>
+            <p class="upload-file-name" id="file-name-display"></p>
+          </div>
+          <div class="upload-actions">
+            <button type="submit" class="primary-button" id="upload-button" disabled>Hochladen &amp; indexieren</button>
+          </div>
+          <p class="upload-result" id="upload-result" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- Sources -->
+      <section class="manage-card">
+        <div class="manage-card-header">
+          <h2>Indexierte Quellen</h2>
+          <div class="inline-actions">
+            <button class="secondary-button compact" id="refresh-button" type="button">Aktualisieren</button>
+            <button class="secondary-button compact" id="cleanup-button" type="button">Veraltete bereinigen</button>
+            <button class="secondary-button compact" id="reindex-button" type="button">Neu indexieren</button>
+          </div>
+        </div>
+        <p class="error-text" id="sources-error" aria-live="polite"></p>
+        <div id="sources-container">
+          <p class="sources-empty">Lade Quellen…</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/manage.js" defer></script>
+</body>
+</html>

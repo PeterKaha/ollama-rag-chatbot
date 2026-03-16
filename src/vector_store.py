@@ -182,6 +182,34 @@ class VectorStore:
     def get_document_count(self) -> int:
         return self.collection.count()
 
+    def get_source_stats(self) -> List[Dict[str, Any]]:
+        """Gibt pro Quelle: source, filename, type, chunks, page_count zurück."""
+        if self.collection.count() == 0:
+            return []
+
+        data = self.collection.get(include=["metadatas"])
+        stats: Dict[str, Dict[str, Any]] = {}
+        for metadata in data["metadatas"]:
+            if not metadata:
+                continue
+            source = metadata.get("source", "")
+            if not source:
+                continue
+            if source not in stats:
+                stats[source] = {
+                    "source": source,
+                    "filename": metadata.get("filename", source.split("/")[-1]),
+                    "type": metadata.get("type", ""),
+                    "chunks": 0,
+                    "page_count": 0,
+                }
+            stats[source]["chunks"] += 1
+            page = metadata.get("page")
+            if page is not None:
+                stats[source]["page_count"] = max(stats[source]["page_count"], int(page))
+
+        return sorted(stats.values(), key=lambda s: s["filename"].lower())
+
     def clear(self) -> None:
         """Löscht die komplette Collection und legt sie neu an."""
         self.client.delete_collection(name=self.COLLECTION_NAME)
@@ -206,6 +234,28 @@ class VectorStore:
             filename = str((metadata or {}).get("filename", "")).casefold()
             if query in source or query in filename:
                 ids_to_delete.append(doc_id)
+
+        if not ids_to_delete:
+            return 0
+
+        self.collection.delete(ids=ids_to_delete)
+        return len(ids_to_delete)
+
+    def delete_by_sources(self, sources: List[str]) -> int:
+        """Löscht alle Chunks, deren source exakt in der übergebenen Liste enthalten ist."""
+        if not sources or self.collection.count() == 0:
+            return 0
+
+        source_set = {s.strip() for s in sources}
+        data = self.collection.get(include=["metadatas"])
+        ids = data.get("ids", [])
+        metadatas = data.get("metadatas", [])
+
+        ids_to_delete = [
+            doc_id
+            for doc_id, metadata in zip(ids, metadatas)
+            if str((metadata or {}).get("source", "")) in source_set
+        ]
 
         if not ids_to_delete:
             return 0

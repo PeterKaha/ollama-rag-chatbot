@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -13,6 +13,7 @@ from src.app_service import AppConfig, RAGApplication
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "web" / "static"
 INDEX_FILE = BASE_DIR / "web" / "templates" / "index.html"
+MANAGE_FILE = BASE_DIR / "web" / "templates" / "manage.html"
 
 
 class ChatRequest(BaseModel):
@@ -86,6 +87,46 @@ def create_app() -> FastAPI:
     def clear_index() -> dict:
         try:
             return app.state.rag_app.clear_index()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.get("/manage", response_class=HTMLResponse)
+    def manage() -> str:
+        return MANAGE_FILE.read_text(encoding="utf-8")
+
+    @app.get("/api/sources")
+    def list_sources() -> dict:
+        try:
+            return {"sources": app.state.rag_app.list_indexed_sources()}
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/cleanup-stale")
+    def cleanup_stale() -> dict:
+        try:
+            return app.state.rag_app.cleanup_stale_sources()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    @app.post("/api/upload")
+    async def upload_document(file: UploadFile = File(...)) -> dict:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Kein Dateiname angegeben.")
+        allowed = {".pdf", ".txt", ".md"}
+        suffix = Path(file.filename).suffix.lower()
+        if suffix not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Nicht unterstützter Dateityp: {suffix}. Erlaubt: {', '.join(sorted(allowed))}",
+            )
+        data_dir = Path(app.state.rag_app.config.data_dir).resolve()
+        data_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = Path(file.filename).name
+        dest = data_dir / safe_name
+        dest.write_bytes(await file.read())
+        try:
+            result = app.state.rag_app.index_documents()
+            return {"uploaded": safe_name, **result}
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 

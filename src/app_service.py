@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List
 
 from src.document_loader import DocumentLoader
@@ -95,6 +96,34 @@ class RAGApplication:
             "chunks_deleted": deleted,
             "chunks_total": self.vector_store.get_document_count(),
         }
+
+    def list_indexed_sources(self) -> List[Dict]:
+        """Gibt alle indizierten Quellen mit exists_on_disk-Flag zurück."""
+        stats = self.vector_store.get_source_stats()
+        return [
+            {**entry, "exists_on_disk": self._resolve_source_path(entry["source"]).is_file()}
+            for entry in stats
+        ]
+
+    def cleanup_stale_sources(self) -> Dict[str, Any]:
+        """Löscht Indexeinträge für Quellen, die nicht mehr auf der Disk existieren."""
+        sources_info = self.list_indexed_sources()
+        stale = [s["source"] for s in sources_info if not s["exists_on_disk"]]
+        total = self.vector_store.get_document_count()
+        if not stale:
+            return {"removed_sources": 0, "chunks_deleted": 0, "chunks_total": total}
+        deleted = self.vector_store.delete_by_sources(stale)
+        return {
+            "removed_sources": len(stale),
+            "chunks_deleted": deleted,
+            "chunks_total": self.vector_store.get_document_count(),
+        }
+
+    def _resolve_source_path(self, source: str) -> Path:
+        p = Path(source)
+        if p.is_absolute():
+            return p
+        return Path(self.config.data_dir).resolve() / p
 
     def answer_question(self, question: str) -> Dict[str, Any]:
         answer = self.rag_pipeline.answer(question)

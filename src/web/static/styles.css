@@ -323,3 +323,215 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* ── Shared sidebar tweaks for manage page ── */
+.sidebar h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+}
+
+.page-shell.align-start {
+  align-items: start;
+}
+
+.top-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.top-nav-link {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: transparent;
+  transition: background 140ms, color 140ms, border-color 140ms;
+}
+
+.top-nav-link:hover {
+  background: var(--secondary);
+  color: var(--text);
+}
+
+.top-nav-link.active {
+  background: var(--primary);
+  color: #f8fffe;
+  border-color: var(--primary);
+}
+
+/* ── Manage page main panel ── */
+.manage-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  align-content: start;
+}
+
+.manage-card {
+  backdrop-filter: blur(18px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 28px;
+  padding: 24px;
+}
+
+.manage-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.manage-card-header h2 {
+  font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+}
+
+.inline-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.secondary-button.compact {
+  width: auto;
+  padding: 9px 16px;
+  font-size: 0.88rem;
+}
+
+/* ── Upload form ── */
+.upload-form {
+  display: grid;
+  gap: 12px;
+}
+
+.upload-drop {
+  border: 2px dashed rgba(15, 118, 110, 0.28);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 140ms, background 140ms;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.upload-drop:hover,
+.upload-drop.drag-over {
+  border-color: var(--primary);
+  background: rgba(15, 118, 110, 0.05);
+}
+
+.upload-drop input[type="file"] {
+  display: none;
+}
+
+.upload-drop-label {
+  display: block;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.upload-drop-label strong {
+  color: var(--primary);
+}
+
+.upload-file-name {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--primary-strong);
+  margin-top: 8px;
+}
+
+.upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.upload-result {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+  min-height: 1.2em;
+  overflow-wrap: anywhere;
+}
+
+/* ── Sources table ── */
+.sources-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.sources-table th {
+  text-align: left;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 0 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sources-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.sources-table tr:last-child td {
+  border-bottom: none;
+}
+
+.source-doc {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.status-ok {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.status-stale {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 0.85rem;
+  font-family: "IBM Plex Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
+.sources-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 24px 0;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .manage-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sources-table th:nth-child(3),
+  .sources-table td:nth-child(3),
+  .sources-table th:nth-child(4),
+  .sources-table td:nth-child(4) {
+    display: none;
+  }
+}
