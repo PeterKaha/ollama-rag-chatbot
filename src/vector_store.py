@@ -119,7 +119,7 @@ class VectorStore:
             metadata={"hnsw:space": "cosine"},
         )
 
-    def add_documents(self, documents: List[Document]) -> int:
+    def add_documents(self, documents: List[Document], on_progress=None) -> int:
         """Chunked documents in den Vector Store einfügen. Bereits indexierte Quellen werden übersprungen."""
         all_chunks: List[Document] = []
         for doc in documents:
@@ -140,17 +140,39 @@ class VectorStore:
         if not new_chunks:
             return 0
 
-        print(f"Erstelle Embeddings für {len(new_chunks)} Chunks...")
-        embeddings = self.embeddings.embed_many([c.content for c in new_chunks])
+        # Quellen einzeln verarbeiten für Fortschrittsanzeige
+        chunks_by_source: Dict[str, List[Document]] = {}
+        for c in new_chunks:
+            src = c.metadata.get("source", "")
+            chunks_by_source.setdefault(src, []).append(c)
 
-        self.collection.add(
-            ids=[str(uuid.uuid4()) for _ in new_chunks],
-            embeddings=embeddings,
-            documents=[c.content for c in new_chunks],
-            metadatas=[c.metadata for c in new_chunks],
-        )
+        total_all = len(new_chunks)
+        total_done = 0
 
-        return len(new_chunks)
+        for source, chunks in chunks_by_source.items():
+            filename = chunks[0].metadata.get("filename") or source.split("/")[-1]
+            n = len(chunks)
+
+            def _make_chunk_cb(fn: str, chunk_count: int, done_before: int):
+                def on_chunk(chunk_idx: int, _total: int) -> None:
+                    if on_progress and (chunk_idx % 25 == 0 or chunk_idx == chunk_count):
+                        on_progress(fn, chunk_idx, chunk_count, done_before + chunk_idx, total_all)
+                return on_chunk
+
+            chunk_cb = _make_chunk_cb(filename, n, total_done) if on_progress else None
+
+            print(f"Erstelle Embeddings für {n} Chunks ({filename})...")
+            embeddings = self.embeddings.embed_many([c.content for c in chunks], on_chunk=chunk_cb)
+
+            self.collection.add(
+                ids=[str(uuid.uuid4()) for _ in chunks],
+                embeddings=embeddings,
+                documents=[c.content for c in chunks],
+                metadatas=[c.metadata for c in chunks],
+            )
+            total_done += n
+
+        return total_done
 
     def query(self, query_text: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Ähnlichkeitssuche im Vector Store."""

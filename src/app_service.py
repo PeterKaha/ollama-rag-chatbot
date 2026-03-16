@@ -1,7 +1,10 @@
+import json
 import os
+import queue
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Generator, List
 
 from src.document_loader import DocumentLoader
 from src.embeddings import OllamaEmbeddings
@@ -81,6 +84,44 @@ class RAGApplication:
             "chunks_added": added_chunks,
             "chunks_total": self.vector_store.get_document_count(),
         }
+
+    def index_documents_stream(self) -> Generator[str, None, None]:
+        """Generator der SSE-Fortschritts-Events als data:-Strings liefert."""
+        documents = self.document_loader.load_all()
+        yield f"data: {json.dumps({'type': 'start', 'documents': len(documents)})}\n\n"
+
+        q: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+
+        def on_progress(filename: str, chunk_done: int, chunk_total: int,
+                        total_done: int, total_all: int) -> None:
+            q.put({
+                "type": "progress",
+                "filename": filename,
+                "chunk_done": chunk_done,
+                "chunk_total": chunk_total,
+                "total_done": total_done,
+                "total_all": total_all,
+            })
+
+        def run() -> None:
+            try:
+                added = self.vector_store.add_documents(documents, on_progress=on_progress)
+                q.put({
+                    "type": "done",
+                    "chunks_added": added,
+                    "chunks_total": self.vector_store.get_document_count(),
+                    "documents_loaded": len(documents),
+                })
+            except Exception as exc:
+                q.put({"type": "error", "message": str(exc)})
+
+        threading.Thread(target=run, daemon=True).start()
+
+        while True:
+            event = q.get()
+            yield f"data: {json.dumps(event)}\n\n"
+            if event["type"] in ("done", "error"):
+                break
 
     def clear_index(self) -> Dict[str, int]:
         before = self.vector_store.get_document_count()

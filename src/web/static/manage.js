@@ -217,11 +217,13 @@ function initUpload() {
       const res  = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || res.statusText);
-      resultEl.style.color = "var(--primary)";
-      resultEl.textContent = `"${data.uploaded}" hochgeladen · ${data.chunks_added} neue Chunks · ${data.chunks_total} gesamt.`;
+      resultEl.style.color = "var(--muted)";
+      resultEl.textContent = `"${data.uploaded}" gespeichert. Indexiere…`;
       fileInput.value = "";
       nameDisplay.textContent = "";
-      await Promise.all([refreshSources(), fetchHealth()]);
+      await streamReindex();
+      resultEl.style.color = "var(--primary)";
+      resultEl.textContent = `"${data.uploaded}" hochgeladen und indexiert.`;
     } catch (err) {
       resultEl.style.color = "var(--error)";
       resultEl.textContent = `Fehler: ${err.message}`;

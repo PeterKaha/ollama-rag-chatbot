@@ -522,6 +522,35 @@ button:disabled {
   text-align: center;
 }
 
+/* ── Indexierungs-Fortschrittsbalken ── */
+.index-progress {
+  margin-bottom: 16px;
+}
+
+.index-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--secondary);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.index-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  width: 0%;
+  transition: width 300ms ease;
+}
+
+.index-progress-text {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 760px) {
   .manage-card-header {
     flex-direction: column;

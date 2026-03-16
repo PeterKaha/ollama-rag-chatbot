@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -124,11 +124,15 @@ def create_app() -> FastAPI:
         safe_name = Path(file.filename).name
         dest = data_dir / safe_name
         dest.write_bytes(await file.read())
-        try:
-            result = app.state.rag_app.index_documents()
-            return {"uploaded": safe_name, **result}
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        return {"uploaded": safe_name}
+
+    @app.get("/api/reindex-stream")
+    def reindex_stream() -> StreamingResponse:
+        return StreamingResponse(
+            app.state.rag_app.index_documents_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     return app
 
